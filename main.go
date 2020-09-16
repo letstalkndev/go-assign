@@ -42,14 +42,14 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	for selDB.Next() {
 		var id int
-		var title, desc string
-		err = selDB.Scan(&id, &title, &desc)
+		var title, description string
+		err = selDB.Scan(&id, &title, &description)
 		if err != nil {
 			panic(err.Error())
 		}
 		blog.ID = id
 		blog.Title = title
-		blog.Desc = desc
+		blog.Desc = description
 		blogs = append(blogs, blog)
 	}
 
@@ -64,7 +64,24 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func insert(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	if r.Method == "POST" {
+		title := r.FormValue("title")
+		desc := r.FormValue("desc")
+		insForm, err := db.Prepare("INSERT INTO blog(title, description) VALUES(?,?)")
+		if err != nil {
+			panic(err.Error())
+		}
+		insForm.Exec(title, desc)
+		log.Println("INSERT: title: " + title + " | desc: " + desc)
+	}
+	defer db.Close()
+	http.Redirect(w, r, "/", 301)
+}
+
 func main() {
 	http.HandleFunc("/", index)
+	http.HandleFunc("/insert", insert)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
